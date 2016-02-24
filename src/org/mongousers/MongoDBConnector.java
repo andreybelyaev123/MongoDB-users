@@ -12,6 +12,9 @@ import org.bson.conversions.Bson;
 import java.util.List;
 import java.util.ArrayList;
 
+/**
+ *  A connector to MongoDB. 
+ */
 public class MongoDBConnector {
 	private static String DBhost = "localhost";
 	private static short DBport = 27017;
@@ -29,14 +32,14 @@ public class MongoDBConnector {
 	
 	MongoClient mongoClient;
 	MongoDatabase mongoDb;
-	
 	String collectionName;
-	int	pageSize;
 	
 	MongoDBConnector(String collectionName) {
 		this.collectionName = collectionName;
 	}
-	
+	/**
+	 * connect to MongoDB. 
+	 */
 	public boolean connect() {
 		try {
 			if ( DBport > 0 )
@@ -55,13 +58,19 @@ public class MongoDBConnector {
 		}
 		return false;
 	}
-	
+	/**
+	 * disconnect from MongoDB. 
+	 */
 	public void close() {
 		if ( mongoClient != null )
 			mongoClient.close();
 	}
-	
-	public String findOne(String filter) {		
+	/**
+	 * Execute MongoDB findOne query.
+	 * parameter filter specify query condition: {"userid":"id","password":"psw"}   
+	 * return Document, if found
+	 */
+	public Document findOne(String filter) {		
 		MongoCursor<Document> cursor = null;
 		try {
 			if ( filter != null) {
@@ -75,10 +84,7 @@ public class MongoDBConnector {
 				cursor = mongoDb.getCollection(collectionName).find().limit(1).iterator();
 			if ( !cursor.hasNext() ) 
 				return null;
-			Document doc = cursor.next();
-			if ( doc.containsKey("firstname") )
-				return doc.get("firstname").toString();
-			return new String("");
+			return cursor.next();			
 		}
 		catch (Exception e) {
 			return null;
@@ -88,12 +94,23 @@ public class MongoDBConnector {
 				cursor.close();
 		}
 	}
-	
+	/**
+	 * Checks collection is not empty
+	 * parameter filter specify query condition: {"userid":"id","password":"psw"}   
+	 * return Document, if found
+	 */
 	public boolean checkCollection() {
 		return mongoDb.getCollection(collectionName).find().limit(1).iterator().hasNext();
 	}
-	
-	public List<Document> getDocuments(int pageNumber, int pageSize, String filter, String groupby) 
+	/**
+	 * Execute MongoDB aggregate query.
+	 * Parameter filter specify query condition: {"userid":"id","password":"psw"}  
+	 * Parameter filter is document's field for grouping
+	 * Parameter skip sets starting point. 
+	 * Parameter limit defines a number of documents to return. If limit == 0, all documents will be returned.  
+	 * return List<Document>, if found
+	 */
+	public List<Document> getDocuments(int skip, int limit, String filter, String groupby) 
 	{
 		List<Bson> pipeLine = new ArrayList<Bson>();
 		if (filter != null ) { 
@@ -106,10 +123,10 @@ public class MongoDBConnector {
 			group.put("users", new BasicDBObject("$push", "$$ROOT"));
 			pipeLine.add(new BasicDBObject("$group", group));
 		}
-		if (pageNumber > 0) 
-			pipeLine.add(new BasicDBObject("$skip", pageNumber*pageSize));
-		if (pageSize > 0)
-			pipeLine.add(new BasicDBObject("$limit", pageSize));
+		if (skip > 0) 
+			pipeLine.add(new BasicDBObject("$skip", skip));
+		if (limit > 0)
+			pipeLine.add(new BasicDBObject("$limit", limit));
 		List<Document> res = new ArrayList<Document>();
 		mongoDb.getCollection(collectionName).aggregate(pipeLine).into(res);
 		return res;

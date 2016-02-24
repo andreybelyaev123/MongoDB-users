@@ -5,11 +5,13 @@ import org.junit.Test;
 import java.net.URLEncoder;
 
 public class MongoUsersTests {
-
 	@Test
-	public void testStatus() {
+	public void testLogin() {
 		try {
-			System.out.println(HttpRequest.httpGet("status","v1"));
+			System.out.println(HttpRequest.httpPost("login","{\"userid\":\"johngrey\",\"password\":\"johngrey123!\"}","v1+json"));
+			System.out.println(HttpRequest.httpPost("login","{\"userid\":\"johngry\",\"password\":\"johngrey123!\"}","v1+json"));			
+			System.out.println(HttpRequest.httpPost("login","{\"userid\":\"johngrey\"}","v1+json"));
+			System.out.println(HttpRequest.httpPost("login","{\"password\":\"johngrey123!\"}","v1+json"));
 		}
 		catch (Exception e) {
 				fail(e.getMessage() );
@@ -36,6 +38,15 @@ public class MongoUsersTests {
 		catch (Exception e) {
 			String testEndPoint = (endPoint == null) ? "" : " endpoint - " + endPoint;
 			fail("testUsers:" + testEndPoint + ", exception - " + e.getMessage() );
+		}
+	}
+	@Test
+	public void testStatus() {
+		try {
+			System.out.println(HttpRequest.httpGet("status","v1"));
+		}
+		catch (Exception e) {
+				fail(e.getMessage() );
 		}
 	}
 	@Test

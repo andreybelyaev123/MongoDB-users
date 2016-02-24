@@ -26,38 +26,57 @@ import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 
-
+/**
+ *  Implements endpoints from Path = /UserService 
+ */
 @Path("/UserService")
 public class UserService {	
+	static private String collectionName = "users";
+		
+	static public void setCollection(String name) {
+		collectionName = name;
+	}
 	
+	public UserService() {
+		
+	}
+		
+	/**
+	 *  POST endpoint /login authenticates a user
+	 *  Json parameter login should be {"userid":"id","password":"psw"}   
+	 *  Function returns {error:"no",text:"Welcome, <firstname>!"}
+	 *  or an error in format {error:"yes",text:"error text"}
+	 *       
+	 */
 	@POST
 	@Path("/login")
 	@Produces(MediaType.APPLICATION_JSON)
 	@Consumes({MediaType.APPLICATION_JSON,"application/mongo-users-v1+json"})
-	public String login(String params){
+	public String login(String login){ 
 		MongoDBConnector	userClient = null;		
 	    try {	    	
-	    	JSONObject jsonParam = JsonObject(params);
+	    	JSONObject jsonParam = JsonObject(login);
 			if ( jsonParam == null ) {
 				return ErrorJSON("Unable to parse request.");
 			}
 			if ( getParam(jsonParam, "userid") == null)
 				return ErrorJSON("User ID is empty.");
-			if ( getParam(jsonParam, "password") == null )
+			if ( getParam(jsonParam, "password") == null ) 
 				return ErrorJSON("Password is empty.");
 				
-	    	userClient = new MongoDBConnector("users");
+	    	userClient = new MongoDBConnector(collectionName);
 		
 	    	if ( !userClient.connect() )		
 	    		return ErrorJSON("Unable to connect to MangoDb.");
-	    	String firstName = userClient.findOne(params); 
-	    	if ( firstName != null ) {
-	    		if (firstName.length() > 0)
+	    	Document doc = userClient.findOne(login); 	    	
+	    	if ( doc == null ) 
+		    	return ErrorJSON("Incorrect username or password.");
+	    	if ( doc.containsKey("firstname") ) {
+				String firstName = doc.get("firstname").toString();
+	    		if (firstName != null && firstName.length() > 0)
 	    			return Json.createObjectBuilder().add("error", "no").add("text", "Welcome, " + firstName + "!").build().toString();
-	    		else
-	    			return Json.createObjectBuilder().add("error", "no").build().toString();
 	    	}
-	    	return ErrorJSON("Incorrect username or password.");
+    		return Json.createObjectBuilder().add("error", "no").build().toString();
 	    }
 	    catch (Exception e) {
 	    	return ErrorJSON("Unable to login. Error: " + e.getMessage());
@@ -67,6 +86,17 @@ public class UserService {
 	    		userClient.close();
 		}
 	}
+	/**
+	 *  GET endpoint /users?filter=condition&groupby=field&page_number=page&page_size=size 
+	 *  condition can be any Json conditon, like {"firstname":"John","profession":"engineer"}
+	 *  Parameter groupby can be any field from collection, like address.zipcode
+	 *  Parameter size defines max number of documents in reply. If size == 0, then all documents will be returned
+	 *  if page is not zero, then first page * size will be skipped   
+	 *  Function returns Json string {Result:[{Json documents}]} if number of documents > page_size,
+	 *  or {last:"yes",Result:[{Json documents}]}, if it is last page,
+	 *  or an error in format {error:"yes",text:"error text"}
+	 *       
+	 */
 	@GET
 	@Path("/users")
 	@Produces(MediaType.APPLICATION_JSON)
@@ -83,11 +113,11 @@ public class UserService {
 	    try {
 	    	if ( filterPar != null)
 	    		filterValue = URLDecoder.decode(filterPar, "UTF-8");
-	    	userClient = new MongoDBConnector("users");
+	    	userClient = new MongoDBConnector(collectionName);
 		
 	    	if ( !userClient.connect() )		
 	    		return ErrorJSON("Unable to connect to MangoDb.");
-	    	docs = userClient.getDocuments(pageNumber,pageSize, filterValue, group);
+	    	docs = userClient.getDocuments(pageNumber*pageSize,pageSize, filterValue, group);
 	    }
 	    catch (Exception e) {
 	    	return ErrorJSON("Unable to get documents. Error: " + e.getMessage());
@@ -97,24 +127,28 @@ public class UserService {
 	    		userClient.close();
 		}
 	    String result = JSON.serialize(docs);
-	    if ( docs.size() < pageSize )
+	    if ( docs.size() < pageSize || pageSize == 0 )
 	    	return Json.createObjectBuilder().add("last","yes").add("result", result).build().toString(); 
 		return Json.createObjectBuilder().add("result", result).build().toString();
 	}		
-	
+	/**
+	 *  GET endpoint /status checks MongoDB connection and checks a collection is not empty   
+	 *  Function returns {error:"yes"|"no",text:"error text"}
+	 *       
+	 */
 	@GET
 	@Path("/status")
 	@Consumes({"application/mongo-users-v1"}) 
 	public String getStatus(){
 		MongoDBConnector	userClient = null;
 	    try {	    	
-	    	userClient = new MongoDBConnector("users");
+	    	userClient = new MongoDBConnector(collectionName);
 		
 	    	if ( !userClient.connect() )		
 	    		return ErrorJSON("Unable to connect to MangoDb.");
 	    	if ( !userClient.checkCollection() )
 	    		return ErrorJSON("Collection \"users\" is empty.");
-	    	return Json.createObjectBuilder().add("error", "no").add("text", "MangoDB is running.").build().toString(); 
+	    	return Json.createObjectBuilder().add("error", "no").build().toString(); 
 	    }
 	    catch (Exception e) {
 	    	return ErrorJSON("Unable to get documents. Error: " + e.getMessage());
@@ -124,6 +158,10 @@ public class UserService {
 	    		userClient.close();
 		}		
 	}
+	/**
+	 *  GET endpoint /files{dir} returns an array [{filename:"file"|"directory"}] from directory dir
+	 *       
+	 */
 	@SuppressWarnings("unchecked")
 	@GET
 	@Path("/files/{dir}")
