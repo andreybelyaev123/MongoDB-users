@@ -9,14 +9,27 @@ import java.net.URL;
 
 
 public class HttpRequest {
-	private static final String urlHead = "http://localhost:9998/UserService/";
+	private static final String servicePart = "/UserService/";
+	private static String serverHost = "http://localhost";
+	private static short serverPort = 9998;
+	
+	public static void setHost(String h) {
+		serverHost = h;
+	}
+	public static void setPort(short p) {
+		serverPort = p;
+	}
+	
+	private static String getServerURL(String endPoint) {
+		return serverHost + ":" + String.valueOf(serverPort) + servicePart +endPoint;
+	}
 	
 	public static String httpGet(String endPoint, String version) throws IOException {
 		String line;
 		StringBuilder jsonString = new StringBuilder();
 	    HttpURLConnection connection = null;
 	    try {
-	        URL url = new URL(urlHead + endPoint);	        
+	        URL url = new URL(getServerURL(endPoint));	        
 
 	        connection = (HttpURLConnection) url.openConnection();
 
@@ -45,7 +58,7 @@ public class HttpRequest {
 		StringBuilder jsonString = new StringBuilder();
 	    HttpURLConnection connection = null;
 	    try {
-	        URL url = new URL(urlHead + endPoint);	        
+	        URL url = new URL(getServerURL(endPoint));	        
 
 	        connection = (HttpURLConnection) url.openConnection();
 
