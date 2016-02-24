@@ -26,6 +26,8 @@ public class testMain {
 			arg = arg.substring(0,valueIndex);
 						
 			if (arg.equals("host")) {
+				if ( argValue.endsWith("/") )
+					argValue = argValue.substring(0,argValue.length() - 1);
 				HttpRequest.setHost(new String(argValue));
 			}
 			else if (arg.startsWith("port")) {
