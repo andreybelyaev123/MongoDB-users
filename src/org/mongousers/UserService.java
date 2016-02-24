@@ -28,6 +28,7 @@ import org.json.simple.parser.JSONParser;
 
 /**
  *  Implements endpoints from Path = /UserService 
+ *  MongoDB collection {_id,"userid","password","firstname",...}
  */
 @Path("/UserService")
 public class UserService {	
