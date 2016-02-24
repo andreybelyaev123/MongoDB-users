@@ -19,6 +19,9 @@ public class UserServer {
 	public static void main(String[] args) {
 		String dbHost = null;
 		short dbPort = 0;
+		String dbPassword = null;
+		String dbuser = null;
+		
 						
 		for (String arg : args) {
 			if (arg.startsWith("-") || arg.startsWith("/") )
@@ -39,6 +42,12 @@ public class UserServer {
 						
 			if (arg.equals("dbname")) {
 				MongoDBConnector.setDBname(new String(argValue));
+			}
+			else if (arg.equals("dbuser")) {
+				dbuser = new String(argValue);
+			}
+			else if (arg.equals("dbpassword")) {
+				dbPassword = new String(argValue);
 			}
 			else if (arg.equals("dbhost")) {
 				dbHost = new String(argValue);
@@ -77,6 +86,8 @@ public class UserServer {
 		if (dbHost != null && dbPort == 0) {
 			MongoDBConnector.setDBport((short)0);			
 		}
+		if (dbuser != null)
+			MongoDBConnector.setDBuser(dbuser, dbPassword);
 		UserServer.RunServer();
 	}
 	private static void printHelp() {
@@ -87,6 +98,8 @@ public class UserServer {
 		System.out.println("port - 	         port, default 9998");
 		System.out.println("dbhost -         host of MongoDB, default \"http://localhost/\"");
 		System.out.println("dbport -         port of MongoDB, default 27017");
+		System.out.println("dbuser -         MongoDB user name");
+		System.out.println("dbpassword -     MongoDB user password");
 		System.out.println("dbname -         MongoDB database name, default \"test\"");
 		System.out.println("dbcollection -	 MongoDB collection, default \"users\"");
 		System.out.println("");		

@@ -1,6 +1,9 @@
 package org.mongousers;
 
 import com.mongodb.MongoClient;
+import com.mongodb.MongoCredential;
+import com.mongodb.MongoException;
+import com.mongodb.ServerAddress;
 import com.mongodb.BasicDBObject;
 import com.mongodb.DBObject;
 import com.mongodb.client.MongoDatabase;
@@ -11,6 +14,7 @@ import org.bson.Document;
 import org.bson.conversions.Bson;
 import java.util.List;
 import java.util.ArrayList;
+import java.util.Arrays;
 
 /**
  *  A connector to MongoDB. 
@@ -19,6 +23,9 @@ public class MongoDBConnector {
 	private static String DBhost = "localhost";
 	private static short DBport = 27017;
 	private static String DBname = "test";
+	private static String DBuser = null;
+	private static String DBpassword = null;
+	
 	
 	public static void setDBhost(String host) {
 		DBhost = host;
@@ -29,34 +36,36 @@ public class MongoDBConnector {
 	public static void setDBname(String name) {
 		DBname = name;
 	}
+	public static void setDBuser(String name, String password) {
+		DBuser = name;
+		DBpassword = password;
+	}
 	
 	MongoClient mongoClient;
 	MongoDatabase mongoDb;
 	String collectionName;
+	MongoCredential credential;
 	
 	MongoDBConnector(String collectionName) {
 		this.collectionName = collectionName;
+		if ( DBuser != null && DBpassword != null )
+			credential = MongoCredential.createCredential(DBuser, DBname, DBpassword.toCharArray());
 	}
 	/**
 	 * connect to MongoDB. 
 	 */
 	public boolean connect() {
 		try {
-			if ( DBport > 0 )
-				mongoClient = new MongoClient( DBhost, DBport );
-			else
-				mongoClient = new MongoClient( DBhost);
-			if (mongoClient == null)
-				return false;
+			ServerAddress serverAddress = (DBport != 0) 
+					? new ServerAddress(DBhost, DBport) : new ServerAddress(DBhost);
+			mongoClient = (credential != null) 
+					? new MongoClient(serverAddress, Arrays.asList(credential)) : new MongoClient( serverAddress);	
 			mongoDb = mongoClient.getDatabase(DBname);				
 			return mongoDb != null;
 		}
-		catch (Exception e) {
-			e.printStackTrace();
+		catch ( MongoException e) {
+			return false;
 		}
-		finally {
-		}
-		return false;
 	}
 	/**
 	 * disconnect from MongoDB. 
@@ -86,7 +95,7 @@ public class MongoDBConnector {
 				return null;
 			return cursor.next();			
 		}
-		catch (Exception e) {
+		catch (MongoException e) {
 			return null;
 		}
 		finally {
